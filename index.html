@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JET 2026 - Sistema de Inscripción</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a3a52 0%, #0f2438 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a3a52 0%, #2c5aa0 100%);
+            color: white;
+            padding: 30px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 5px solid #d4af37;
+        }
+        .header-content { display: flex; align-items: center; gap: 20px; flex: 1; }
+        .logo { font-size: 40px; }
+        .header h1 { font-size: 32px; font-weight: 700; }
+        .header p { font-size: 13px; opacity: 0.95; }
+        .header-buttons { display: flex; gap: 10px; }
+        .btn-toggle { background: rgba(255,255,255,0.2); color: white; border: 2px solid white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
+        .btn-toggle.active { background: #d4af37; color: #1a3a52; border-color: #d4af37; }
+        .content { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; padding: 40px; }
+        .section-title { font-size: 18px; font-weight: 700; color: #1a3a52; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #d4af37; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; color: #1a3a52; font-size: 13px; }
+        input, select { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 6px; font-size: 13px; font-family: inherit; }
+        input:focus, select:focus { outline: none; border-color: #2c5aa0; box-shadow: 0 0 0 3px rgba(44,90,160,0.1); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        button { background: linear-gradient(135deg, #1a3a52 0%, #2c5aa0 100%); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(44,90,160,0.3); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-export { background: linear-gradient(135deg, #d4af37 0%, #c19b1b 100%); color: #1a3a52; font-weight: 700; }
+        .team-list { background: #f8f9fa; border-radius: 6px; padding: 20px; max-height: 500px; overflow-y: auto; }
+        .team-item { background: white; padding: 12px 15px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #2c5aa0; font-size: 12px; }
+        .team-item strong { color: #1a3a52; display: block; margin-bottom: 3px; }
+        .team-item small { color: #6c757d; display: block; line-height: 1.4; }
+        .btn-delete { background: #dc3545; padding: 5px 10px; font-size: 11px; margin-top: 8px; width: 100%; }
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%); padding: 20px; border-radius: 6px; text-align: center; border-top: 4px solid #2c5aa0; }
+        .stat-value { font-size: 28px; font-weight: 700; color: #1a3a52; margin-bottom: 5px; }
+        .stat-label { font-size: 11px; color: #6c757d; }
+        .button-group { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .button-group button { flex: 1; min-width: 140px; }
+        .admin-hidden { display: none; }
+        .inscription-hidden { display: none; }
+        .login-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center; }
+        .login-overlay.active { display: flex; }
+        .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 400px; text-align: center; }
+        .login-box h2 { color: #1a3a52; margin-bottom: 30px; font-size: 24px; }
+        .login-box input { margin-bottom: 15px; }
+        .login-box button { width: 100%; margin-top: 20px; }
+        .success-message { background: #d4edda; color: #155724; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #c3e6cb; }
+        .error-message { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #f5c6cb; }
+        .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .checkbox-item { display: flex; align-items: center; }
+        .checkbox-item input { width: auto; margin-right: 8px; }
+        .checkbox-item label { margin-bottom: 0; text-transform: none; font-weight: 500; font-size: 12px; }
+        .confirmation-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; align-items: center; justify-content: center; }
+        .confirmation-screen.active { display: flex; }
+        .confirmation-box { background: white; border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.3); max-width: 500px; padding: 40px; text-align: center; }
+        .confirmation-checkmark { font-size: 80px; margin-bottom: 20px; animation: scaleIn 0.6s ease-out; }
+        @keyframes scaleIn { from { transform: scale(0); } to { transform: scale(1); } }
+        .confirmation-title { font-size: 28px; font-weight: 700; color: #1a3a52; margin-bottom: 10px; }
+        .confirmation-subtitle { font-size: 14px; color: #6c757d; margin-bottom: 30px; }
+        .registration-number { background: #f0f0f0; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 2px solid #d4af37; }
+        .registration-number-label { font-size: 12px; color: #999; text-transform: uppercase; margin-bottom: 5px; }
+        .registration-number-value { font-size: 32px; font-weight: 700; color: #1a3a52; font-family: monospace; }
+        .confirmation-details { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; text-align: left; }
+        .confirmation-details p { margin: 8px 0; font-size: 13px; color: #333; }
+        .confirmation-details strong { color: #1a3a52; }
+        .confirmation-buttons { display: flex; gap: 10px; margin-top: 30px; flex-direction: column; }
+        .confirmation-buttons button { margin-top: 0; padding: 15px 20px; }
+        .btn-download { background: linear-gradient(135deg, #d4af37 0%, #c19b1b 100%) !important; color: #1a3a52 !important; font-weight: 700 !important; }
+        .btn-new { background: #6c757d !important; }
+        .info-box { background: #e7f3ff; color: #004085; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 12px; border-left: 4px solid #004085; }
+        .download-link { display: inline-flex; align-items: center; gap: 8px; color: #2c5aa0; text-decoration: none; font-weight: 600; margin-top: 10px; }
+        .download-link:hover { text-decoration: underline; }
+        .municipality-control { background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #2c5aa0; }
+        .municipality-control h4 { color: #1a3a52; margin-bottom: 10px; font-size: 13px; }
+        .category-toggles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-left: 20px; }
+        .category-toggle { display: flex; align-items: center; gap: 8px; }
+        .category-toggle input { width: auto; margin: 0; }
+        .category-toggle label { margin: 0; font-size: 12px; cursor: pointer; }
+        .connection-status { position: fixed; bottom: 20px; right: 20px; background: white; padding: 10px 15px; border-radius: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); font-size: 12px; z-index: 1000; display: flex; align-items: center; gap: 8px; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .status-connected { background: #28a745; }
+        .status-disconnected { background: #dc3545; }
+        .status-loading { background: #ffc107; }
+        @media (max-width: 1024px) {
+            .content { grid-template-columns: 1fr; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="logo">🏆</div>
+                <div>
+                    <h1>JET 2026</h1>
+                    <p>Sistema de Inscripción - Juegos Estudiantiles Tucumán</p>
+                </div>
+            </div>
+            <div class="header-buttons">
+                <button class="btn-toggle active" id="toggleInscription" onclick="switchMode('inscription')">📝 Inscripción</button>
+                <button class="btn-toggle" id="toggleAdmin" onclick="attemptAdminAccess()">🔐 Admin</button>
+            </div>
+        </div>
+
+        <!-- MODO INSCRIPCIÓN -->
+        <div class="content" id="inscriptionMode">
+            <div>
+                <h2 class="section-title">🏫 Datos de la Institución</h2>
+                <div id="messageContainer"></div>
+
+                <a href="https://www.educaciontuc.gov.ar/descargas-juegos-estudiantiles/" target="_blank" class="download-link">
+                    ⬇️ Descargar Planillas de Inscripción
+                </a>
+                <small style="color: #999; display: block; margin-top: 5px;">Descarga, completa, firma y sella las planillas. Deberás presentarlas el día de la competencia.</small>
+
+                <div class="form-group">
+                    <label>Nombre de la Escuela</label>
+                    <input type="text" id="schoolName" placeholder="Ej: Escuela Nro. 38">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Municipio</label>
+                        <select id="municipality">
+                            <option value="">-- Seleccionar --</option>
+                            <option>San Miguel de Tucumán</option>
+                            <option>Alderetes</option>
+                            <option>Aguilares</option>
+                            <option>Banda del Río Salí</option>
+                            <option>Bella Vista</option>
+                            <option>Burruyacú</option>
+                            <option>Concepción</option>
+                            <option>Famaillá</option>
+                            <option>Graneros</option>
+                            <option>Juan Bautista Alberbi</option>
+                            <option>La Cocha</option>
+                            <option>Las Talitas</option>
+                            <option>Lules</option>
+                            <option>Monteros</option>
+                            <option>Simoca</option>
+                            <option>Tafí del Valle</option>
+                            <option>Tafí Viejo</option>
+                            <option>Trancas</option>
+                            <option>Yerba Buena</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Correo Institución</label>
+                        <input type="email" id="institutionEmail" placeholder="institucion@escuela.edu.ar">
+                    </div>
+                </div>
+
+                <h2 class="section-title" style="margin-top: 30px;">👨‍🏫 Docente a Cargo</h2>
+
+                <div class="form-group">
+                    <label>Nombre del Docente</label>
+                    <input type="text" id="teacherName" placeholder="Ej: Prof. Juan García">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Teléfono Docente</label>
+                        <input type="tel" id="teacherPhone" placeholder="+54 381 123-4567">
+                    </div>
+                    <div class="form-group">
+                        <label>Email Docente</label>
+                        <input type="email" id="teacherEmail" placeholder="docente@email.com">
+                    </div>
+                </div>
+
+                <h2 class="section-title" style="margin-top: 30px;">⚽ Inscripción de Equipo</h2>
+
+                <div class="form-group">
+                    <label>Disciplina Deportiva</label>
+                    <select id="discipline" onchange="handleDisciplineChange()">
+                        <option value="">-- Seleccionar --</option>
+                        <optgroup label="DEPORTES ZONALES">
+                            <option>Futsal</option>
+                            <option>Básquet 3x3</option>
+                            <option>Vóley</option>
+                            <option>Atletismo</option>
+                            <option>Ajedrez</option>
+                            <option>Handball</option>
+                            <option>Hockey</option>
+                        </optgroup>
+                        <optgroup label="DEPORTES FINAL PROVINCIAL (Septiembre)">
+                            <option>Cestoball</option>
+                            <option>Natación</option>
+                            <option>Sóftbol</option>
+                            <option>Gimnasia Masculina</option>
+                            <option>Gimnasia Femenina</option>
+                            <option>Tenis</option>
+                            <option>Tenis de Mesa</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div id="disciplineInfo" style="display:none;"></div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select id="category">
+                            <option value="">-- Seleccionar --</option>
+                            <option>Sub 13</option>
+                            <option>Sub 16</option>
+                            <option>Sub 18</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Rama</label>
+                        <select id="branch">
+                            <option value="">-- Seleccionar --</option>
+                            <option>Femenina</option>
+                            <option>Masculina</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ATLETISMO -->
+                <div id="athleticsFields" style="display:none;">
+                    <div class="info-box">
+                        ⚠️ <strong>Atletismo:</strong> Selecciona 1 carrera + 2 campo, O 2 carreras + 1 campo
+                    </div>
+                    <div class="form-group">
+                        <label>Pruebas de Carrera (selecciona 1 O 2)</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item"><input type="checkbox" id="carrera1" onchange="validateAtletismo()"><label for="carrera1">100 mts</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="carrera2" onchange="validateAtletismo()"><label for="carrera2">200 mts</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="carrera3" onchange="validateAtletismo()"><label for="carrera3">400 mts</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="carrera4" onchange="validateAtletismo()"><label for="carrera4">800 mts</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="carrera5" onchange="validateAtletismo()"><label for="carrera5">1500 mts</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="carrera6" onchange="validateAtletismo()"><label for="carrera6">Relevo</label></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Pruebas de Campo (selecciona 1 O 2)</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item"><input type="checkbox" id="campo1" onchange="validateAtletismo()"><label for="campo1">Salto Alto</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="campo2" onchange="validateAtletismo()"><label for="campo2">Salto Largo</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="campo3" onchange="validateAtletismo()"><label for="campo3">Jabalina</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="campo4" onchange="validateAtletismo()"><label for="campo4">Bala</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="campo5" onchange="validateAtletismo()"><label for="campo5">Disco</label></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GIMNASIA -->
+                <div id="gimnasiaFields" style="display:none;">
+                    <div class="info-box">
+                        ℹ️ <strong>Gimnasia:</strong> Se inscribe 1 solo participante
+                    </div>
+                </div>
+
+                <button id="btnAddTeam" onclick="addTeam()">✅ Agregar Equipo</button>
+            </div>
+
+            <!-- ESTADÍSTICAS -->
+            <div>
+                <h2 class="section-title">📊 Estadísticas</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTeams">0</div>
+                        <div class="stat-label">Equipos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statDisciplines">0</div>
+                        <div class="stat-label">Disciplinas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statAthletes">0</div>
+                        <div class="stat-label">Atletas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statMunicipalities">0</div>
+                        <div class="stat-label">Municipios</div>
+                    </div>
+                </div>
+
+                <h2 class="section-title">📋 Equipos Inscriptos</h2>
+                <div class="team-list" id="teamList">
+                    <p style="color: #999; text-align: center; padding: 20px;">Cargando datos...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODO ADMIN -->
+        <div class="content admin-hidden" id="adminMode">
+            <div style="grid-column: 1 / -1;">
+                <h2 class="section-title">🔐 Panel de Administrador</h2>
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 15px; color: #1a3a52;">🔓 Habilitar/Deshabilitar Inscripciones</h3>
+                    <div id="municipalityControls"></div>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 15px; color: #1a3a52;">📊 Descargar Datos</h3>
+                    <div class="button-group">
+                        <button class="btn-export" onclick="descargarPorMunicipio()">📥 Descargar Excel (Por Municipio)</button>
+                    </div>
+                </div>
+
+                <h2 class="section-title">📋 Todas las Inscripciones</h2>
+                <div class="team-list" id="adminTeamList">
+                    <p style="color: #999; text-align: center; padding: 20px;">Cargando...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <h2>🔐 Acceso Administrador</h2>
+            <p style="color: #666; margin-bottom: 20px;">Ingresa la contraseña</p>
+            <input type="password" id="adminPassword" placeholder="Contraseña" onkeypress="if(event.key==='Enter') verifyPassword()">
+            <button onclick="verifyPassword()">Ingresar</button>
+            <button style="background: #6c757d; margin-top: 10px;" onclick="closeLoginModal()">Cancelar</button>
+            <p id="loginError" style="color: #dc3545; margin-top: 15px; display: none;"></p>
+        </div>
+    </div>
+
+    <!-- CONFIRMATION SCREEN -->
+    <div class="confirmation-screen" id="confirmationScreen">
+        <div class="confirmation-box">
+            <div class="confirmation-checkmark">✅</div>
+            <h2 class="confirmation-title">¡INSCRIPCIÓN CONFIRMADA!</h2>
+            <p class="confirmation-subtitle">Tu equipo ha sido registrado exitosamente</p>
+            <div class="registration-number">
+                <div class="registration-number-label">Número de Inscripción</div>
+                <div class="registration-number-value" id="confirmationNumber"></div>
+            </div>
+            <div class="confirmation-details">
+                <p><strong>Escuela:</strong> <span id="confirmEscuela"></span></p>
+                <p><strong>Deporte:</strong> <span id="confirmDeporte"></span></p>
+                <p><strong>Categoría:</strong> <span id="confirmCategoria"></span></p>
+                <p><strong>Rama:</strong> <span id="confirmRama"></span></p>
+                <p><strong>Fecha:</strong> <span id="confirmFecha"></span></p>
+            </div>
+            <div class="confirmation-buttons">
+                <button class="btn-download" onclick="downloadConfirmationPDFFromScreen()">📥 Descargar Comprobante PDF</button>
+                <button class="btn-new" onclick="closeConfirmationScreen()">➕ Nueva Inscripción</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Status -->
+    <div class="connection-status">
+        <div class="status-dot status-loading" id="statusDot"></div>
+        <span id="statusText">Conectando...</span>
+    </div>
+
+    <!-- FIREBASE INTEGRATION -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBm--Fpo67gAC1q-7LTji-zTaRQljEqGho",
+            authDomain: "juegos-jet-2026.firebaseapp.com",
+            projectId: "juegos-jet-2026",
+            storageBucket: "juegos-jet-2026.firebasestorage.app",
+            messagingSenderId: "652575792120",
+            appId: "1:652575792120:web:51947c70851e64100fd40d",
+            measurementId: "G-8KSGWD5LZ7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.firebaseDB = db;
+        window.firebaseCollection = collection;
+        window.firebaseAddDoc = addDoc;
+        window.firebaseGetDocs = getDocs;
+        window.firebaseDeleteDoc = deleteDoc;
+        window.firebaseDoc = doc;
+        window.firebaseOnSnapshot = onSnapshot;
+        window.firebaseQuery = query;
+        window.firebaseWhere = where;
+        window.firebaseSetDoc = setDoc;
+        window.firebaseGetDoc = getDoc;
+
+        // Update status
+        document.getElementById('statusDot').className = 'status-dot status-connected';
+        document.getElementById('statusText').textContent = '🟢 Conectado a Firebase';
+
+        // Trigger load after Firebase is ready
+        window.dispatchEvent(new Event('firebaseReady'));
+    </script>
+
+    <script>
+        const ADMIN_PASSWORD = 'JET2026';
+        let teams = [];
+        let adminLoggedIn = false;
+        let lastRegistration = null;
+        let enabledInscriptions = {};
+        let firebaseReady = false;
+
+        const municipalities = ['San Miguel de Tucumán', 'Alderetes', 'Aguilares', 'Banda del Río Salí', 'Bella Vista', 'Burruyacú', 'Concepción', 'Famaillá', 'Graneros', 'Juan Bautista Alberbi', 'La Cocha', 'Las Talitas', 'Lules', 'Monteros', 'Simoca', 'Tafí del Valle', 'Tafí Viejo', 'Trancas', 'Yerba Buena'];
+        const categories = ['Sub 13', 'Sub 16', 'Sub 18'];
+
+        const categoryColors = {
+            'Sub 13': 'FFA500',
+            'Sub 16': 'FFEB3B',
+            'Sub 18': '4CAF50'
+        };
+
+        const sportInfo = {
+            'Futsal': 'Deporte colectivo. Máximo 12 participantes',
+            'Básquet 3x3': 'Deporte colectivo. Máximo 5 participantes',
+            'Vóley': 'Deporte colectivo. Máximo 14 participantes',
+            'Atletismo': 'Deporte individual. 1 participante',
+            'Ajedrez': 'Deporte individual. 1 participante',
+            'Handball': 'Deporte colectivo. Máximo 14 participantes',
+            'Hockey': 'Deporte colectivo. Máximo 14 participantes',
+            'Cestoball': 'Deporte colectivo. Máximo 14 participantes',
+            'Natación': 'Deporte individual. 1 participante',
+            'Sóftbol': 'Deporte colectivo. Máximo 14 participantes',
+            'Gimnasia Masculina': 'Deporte individual. 1 participante',
+            'Gimnasia Femenina': 'Deporte individual. 1 participante',
+            'Tenis': 'Deporte individual. 1 participante',
+            'Tenis de Mesa': 'Deporte individual. 1 participante'
+        };
+
+        // Wait for Firebase to be ready
+        window.addEventListener('firebaseReady', () => {
+            firebaseReady = true;
+            loadFromFirebase();
+            loadEnabledInscriptions();
+        });
+
+        // Cargar inscripciones desde Firebase (en tiempo real)
+        function loadFromFirebase() {
+            if (!window.firebaseDB) return;
+            
+            try {
+                const teamsRef = window.firebaseCollection(window.firebaseDB, 'inscripciones');
+                
+                // Escucha en tiempo real
+                window.firebaseOnSnapshot(teamsRef, (snapshot) => {
+                    teams = [];
+                    snapshot.forEach((doc) => {
+                        teams.push({ id: doc.id, ...doc.data() });
+                    });
+                    updateUI();
+                    updateAdminList();
+                });
+            } catch (e) {
+                console.error('Error cargando desde Firebase:', e);
+            }
+        }
+
+        // Cargar configuración de inscripciones habilitadas
+        async function loadEnabledInscriptions() {
+            if (!window.firebaseDB) return;
+            
+            try {
+                const configRef = window.firebaseDoc(window.firebaseDB, 'configuracion', 'inscripciones');
+                const docSnap = await window.firebaseGetDoc(configRef);
+                
+                if (docSnap.exists()) {
+                    enabledInscriptions = docSnap.data();
+                } else {
+                    initializeEnabledInscriptions();
+                }
+            } catch (e) {
+                console.error('Error cargando configuración:', e);
+                initializeEnabledInscriptions();
+            }
+        }
+
+        function initializeEnabledInscriptions() {
+            enabledInscriptions = {};
+            municipalities.forEach(mun => {
+                enabledInscriptions[mun] = {
+                    'Sub 13': true,
+                    'Sub 16': true,
+                    'Sub 18': true
+                };
+            });
+            saveEnabledToFirebase();
+        }
+
+        async function saveEnabledToFirebase() {
+            if (!window.firebaseDB) return;
+            try {
+                const configRef = window.firebaseDoc(window.firebaseDB, 'configuracion', 'inscripciones');
+                await window.firebaseSetDoc(configRef, enabledInscriptions);
+            } catch (e) {
+                console.error('Error guardando configuración:', e);
+            }
+        }
+
+        function isInscriptionEnabled(municipality, category) {
+            return enabledInscriptions[municipality] && enabledInscriptions[municipality][category];
+        }
+
+        function generateRegistrationNumber() {
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+            return `JET-${year}${month}${day}-${random}`;
+        }
+
+        function handleDisciplineChange() {
+            const discipline = document.getElementById('discipline').value;
+            document.getElementById('athleticsFields').style.display = discipline === 'Atletismo' ? 'block' : 'none';
+            const isGimnasia = discipline === 'Gimnasia Masculina' || discipline === 'Gimnasia Femenina';
+            document.getElementById('gimnasiaFields').style.display = isGimnasia ? 'block' : 'none';
+            
+            const infoBox = document.getElementById('disciplineInfo');
+            if (discipline && sportInfo[discipline]) {
+                infoBox.innerHTML = `<div class="info-box">${sportInfo[discipline]}</div>`;
+                infoBox.style.display = 'block';
+            } else {
+                infoBox.style.display = 'none';
+            }
+            
+            clearFields();
+        }
+
+        function validateAtletismo() {
+            const carreras = [];
+            const campos = [];
+            for (let i = 1; i <= 6; i++) {
+                if (document.getElementById('carrera' + i).checked) carreras.push(i);
+            }
+            for (let i = 1; i <= 5; i++) {
+                if (document.getElementById('campo' + i).checked) campos.push(i);
+            }
+
+            if (carreras.length >= 2) {
+                for (let i = 1; i <= 6; i++) {
+                    if (!document.getElementById('carrera' + i).checked) {
+                        document.getElementById('carrera' + i).disabled = true;
+                    }
+                }
+            } else {
+                for (let i = 1; i <= 6; i++) {
+                    document.getElementById('carrera' + i).disabled = false;
+                }
+            }
+
+            if (campos.length >= 2) {
+                for (let i = 1; i <= 5; i++) {
+                    if (!document.getElementById('campo' + i).checked) {
+                        document.getElementById('campo' + i).disabled = true;
+                    }
+                }
+            } else {
+                for (let i = 1; i <= 5; i++) {
+                    document.getElementById('campo' + i).disabled = false;
+                }
+            }
+        }
+
+        function downloadConfirmationPDFFromScreen() {
+            if (!lastRegistration) return;
+            const r = lastRegistration;
+            downloadConfirmationPDF(r.schoolName, r.teacherName, r.teacherEmail, r.teacherPhone, r.discipline, r.category, r.branch, r.municipality, r.institutionEmail, r.registrationNumber);
+        }
+
+        function downloadConfirmationPDF(schoolName, teacherName, teacherEmail, teacherPhone, discipline, category, branch, municipality, institutionEmail, registrationNumber) {
+            const today = new Date().toLocaleDateString('es-AR');
+            
+            const htmlContent = `
+                <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 600px; margin: 0 auto;">
+                    <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px solid #1a3a52; padding-bottom: 20px;">
+                        <h1 style="color: #1a3a52; margin: 0; font-size: 32px;">🏆 JET 2026</h1>
+                        <p style="color: #666; margin: 5px 0 0 0; font-size: 14px;">Juegos Estudiantiles Tucumán</p>
+                    </div>
+                    <h2 style="color: #2c5aa0; text-align: center; margin-bottom: 30px; font-size: 20px;">✅ CONFIRMACIÓN DE INSCRIPCIÓN</h2>
+                    <div style="background: #d4edda; border: 2px solid #28a745; padding: 15px; border-radius: 8px; margin-bottom: 25px; text-align: center;">
+                        <p style="margin: 0; font-size: 12px; color: #666;">NÚMERO DE INSCRIPCIÓN</p>
+                        <p style="margin: 8px 0 0 0; font-size: 24px; font-weight: bold; color: #1a3a52; font-family: monospace;">${registrationNumber}</p>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+                        <h3 style="color: #1a3a52; margin-top: 0; margin-bottom: 15px; font-size: 16px; border-bottom: 2px solid #d4af37; padding-bottom: 10px;">📋 DATOS DE LA INSTITUCIÓN</h3>
+                        <p style="margin: 8px 0; font-size: 14px;"><strong>Escuela:</strong> ${schoolName}</p>
+                        <p style="margin: 8px 0; font-size: 14px;"><strong>Municipio:</strong> ${municipality}</p>
+                        <p style="margin: 8px 0; font-size: 14px;"><strong>Email Institución:</strong> ${institutionEmail}</p>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+                        <h3 style="color: #1a3a52; margin-top: 0; margin-bottom: 15px; font-size: 16px; border-bottom: 2px solid #d4af37; padding-bottom: 10px;">👨‍🏫 DOCENTE A CARGO</h3>
+                        <p style="margin: 8px 0; font-size: 14px;"><strong>Nombre:</strong> ${teacherName}</p>
+                        <p style="margin: 8px 0; font-size: 14px;"><strong>Teléfono:</strong> ${teacherPhone}</p>
+                        <p style="margin: 8px 0; font-size: 14px;"><strong>Email:</strong> ${teacherEmail}</p>
+                    </div>
+                    <div style="background: #e7f3ff; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+                        <h3 style="color: #1a3a52; margin-top: 0; margin-bottom: 15px; font-size: 16px; border-bottom: 2px solid #004085; padding-bottom: 10px;">⚽ EQUIPO INSCRIPTO</h3>
+                        <p style="margin: 8px 0; font-size: 14px;"><strong>Disciplina:</strong> ${discipline}</p>
+                        <p style="margin: 8px 0; font-size: 14px;"><strong>Categoría:</strong> ${category}</p>
+                        <p style="margin: 8px 0; font-size: 14px;"><strong>Rama:</strong> ${branch}</p>
+                    </div>
+                    <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #ddd;">
+                        <p style="color: #999; font-size: 12px; margin: 5px 0;">Fecha de Inscripción: ${today}</p>
+                        <p style="color: #28a745; font-weight: bold; font-size: 16px; margin-top: 15px;">¡INSCRIPCIÓN CONFIRMADA! ✓</p>
+                        <p style="color: #666; font-size: 12px; margin-top: 15px;">Dirección de Educación Física<br>Ministerio de Educación de Tucumán</p>
+                    </div>
+                </div>
+            `;
+
+            const element = document.createElement('div');
+            element.innerHTML = htmlContent;
+
+            const opt = {
+                margin: 10,
+                filename: `JET_2026_${lastRegistration.schoolName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function showConfirmationScreen(team, registrationNumber) {
+            document.getElementById('confirmationNumber').textContent = registrationNumber;
+            document.getElementById('confirmEscuela').textContent = team.schoolName;
+            document.getElementById('confirmDeporte').textContent = team.discipline;
+            document.getElementById('confirmCategoria').textContent = team.category;
+            document.getElementById('confirmRama').textContent = team.branch;
+            document.getElementById('confirmFecha').textContent = team.date;
+            
+            lastRegistration = { ...team, registrationNumber };
+            
+            document.getElementById('confirmationScreen').classList.add('active');
+        }
+
+        function closeConfirmationScreen() {
+            document.getElementById('confirmationScreen').classList.remove('active');
+            resetForm();
+        }
+
+        async function addTeam() {
+            if (!firebaseReady) {
+                showMessage('⏳ Conectando con la base de datos... Esperá unos segundos', 'error');
+                return;
+            }
+
+            const schoolName = document.getElementById('schoolName').value;
+            const municipality = document.getElementById('municipality').value;
+            const institutionEmail = document.getElementById('institutionEmail').value;
+            const teacherName = document.getElementById('teacherName').value;
+            const teacherPhone = document.getElementById('teacherPhone').value;
+            const teacherEmail = document.getElementById('teacherEmail').value;
+            const discipline = document.getElementById('discipline').value;
+            const category = document.getElementById('category').value;
+            const branch = document.getElementById('branch').value;
+
+            if (!schoolName || !municipality || !institutionEmail || !teacherName || !teacherPhone || !teacherEmail || !discipline || !category || !branch) {
+                showMessage('❌ Por favor completa todos los campos', 'error');
+                return;
+            }
+
+            if (!isInscriptionEnabled(municipality, category)) {
+                showMessage(`❌ Las inscripciones para ${municipality} - ${category} están CERRADAS.`, 'error');
+                return;
+            }
+
+            if (!validateEmail(teacherEmail) || !validateEmail(institutionEmail)) {
+                showMessage('❌ Ingresa emails válidos', 'error');
+                return;
+            }
+
+            const alreadyExists = teams.some(t => 
+                t.schoolName === schoolName && t.discipline === discipline && t.category === category && t.branch === branch
+            );
+
+            if (alreadyExists) {
+                showMessage(`❌ INSCRIPCIÓN INVÁLIDA: Esta escuela ya tiene un equipo inscripto en ${discipline} (${category} - ${branch}). Solo se permite 1 equipo por escuela en cada deporte, categoría y rama.`, 'error');
+                return;
+            }
+
+            let athleteCount = 1;
+            let additionalData = null;
+
+            if (discipline === 'Atletismo') {
+                const carreras = [];
+                const campos = [];
+                for (let i = 1; i <= 6; i++) {
+                    if (document.getElementById('carrera' + i).checked) carreras.push(i);
+                }
+                for (let i = 1; i <= 5; i++) {
+                    if (document.getElementById('campo' + i).checked) campos.push(i);
+                }
+                if ((carreras.length !== 1 || campos.length !== 2) && (carreras.length !== 2 || campos.length !== 1)) {
+                    showMessage('⚠️ Atletismo: Selecciona 1 carrera + 2 campo O 2 carreras + 1 campo', 'error');
+                    return;
+                }
+                additionalData = { carreras, campos };
+            }
+
+            const btn = document.getElementById('btnAddTeam');
+            btn.disabled = true;
+            btn.textContent = '⏳ Guardando...';
+
+            try {
+                const registrationNumber = generateRegistrationNumber();
+                const newTeam = {
+                    schoolName,
+                    municipality,
+                    institutionEmail,
+                    teacherName,
+                    teacherPhone,
+                    teacherEmail,
+                    discipline,
+                    category,
+                    branch,
+                    athleteCount,
+                    additionalData,
+                    date: new Date().toLocaleDateString('es-AR'),
+                    time: new Date().toLocaleTimeString('es-AR'),
+                    registrationNumber,
+                    timestamp: Date.now()
+                };
+
+                // Guardar en Firebase
+                const teamsRef = window.firebaseCollection(window.firebaseDB, 'inscripciones');
+                await window.firebaseAddDoc(teamsRef, newTeam);
+
+                showConfirmationScreen(newTeam, registrationNumber);
+            } catch (e) {
+                showMessage('❌ Error al guardar: ' + e.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '✅ Agregar Equipo';
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('statTeams').textContent = teams.length;
+            document.getElementById('statDisciplines').textContent = new Set(teams.map(t => t.discipline)).size;
+            document.getElementById('statAthletes').textContent = teams.length;
+            document.getElementById('statMunicipalities').textContent = new Set(teams.map(t => t.municipality)).size;
+
+            const teamList = document.getElementById('teamList');
+            if (teams.length === 0) {
+                teamList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No hay equipos inscriptos aún</p>';
+                return;
+            }
+
+            teamList.innerHTML = teams.map(team => `
+                <div class="team-item" style="border-left-color: #${categoryColors[team.category] || '2c5aa0'};">
+                    <strong>${team.schoolName}</strong>
+                    <small><strong>${team.teacherName}</strong> | ${team.discipline} - ${team.category} - ${team.branch}</small>
+                    <small>📍 ${team.municipality}</small>
+                    <small style="color:#999;">Nro: ${team.registrationNumber}</small>
+                </div>
+            `).join('');
+        }
+
+        function updateAdminList() {
+            const adminList = document.getElementById('adminTeamList');
+            if (teams.length === 0) {
+                adminList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Sin inscripciones</p>';
+                return;
+            }
+
+            adminList.innerHTML = teams.map(team => `
+                <div class="team-item" style="border-left-color: #${categoryColors[team.category] || '2c5aa0'};">
+                    <strong>${team.schoolName}</strong>
+                    <small><strong>${team.teacherName}</strong> | ${team.discipline} - ${team.category} - ${team.branch}</small>
+                    <small>📍 ${team.municipality} | 🏷️ ${team.discipline}</small>
+                    <small>☎️ ${team.teacherPhone} | 📧 ${team.teacherEmail}</small>
+                    <small style="color:#999;">Nro: ${team.registrationNumber} | ${team.date} ${team.time}</small>
+                    <button class="btn-delete" onclick="deleteTeam('${team.id}')">🗑️ Eliminar</button>
+                </div>
+            `).join('');
+        }
+
+        function buildMunicipalityControls() {
+            const container = document.getElementById('municipalityControls');
+            let html = '';
+            
+            municipalities.forEach(mun => {
+                const isEnabledMun = Object.values(enabledInscriptions[mun] || {}).some(v => v);
+                html += `
+                    <div class="municipality-control">
+                        <h4>
+                            <input type="checkbox" id="mun-${mun}" 
+                                   ${isEnabledMun ? 'checked' : ''}
+                                   onchange="toggleMunicipality('${mun}', this.checked)">
+                            ${mun}
+                        </h4>
+                        <div class="category-toggles">
+                            ${categories.map(cat => `
+                                <div class="category-toggle">
+                                    <input type="checkbox" id="cat-${mun}-${cat}" 
+                                           ${isInscriptionEnabled(mun, cat) ? 'checked' : ''}
+                                           onchange="toggleCategory('${mun}', '${cat}', this.checked)">
+                                    <label for="cat-${mun}-${cat}">${cat}</label>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        async function toggleMunicipality(municipality, enabled) {
+            if (!enabledInscriptions[municipality]) {
+                enabledInscriptions[municipality] = {};
+            }
+            categories.forEach(cat => {
+                enabledInscriptions[municipality][cat] = enabled;
+                const checkbox = document.getElementById(`cat-${municipality}-${cat}`);
+                if (checkbox) checkbox.checked = enabled;
+            });
+            await saveEnabledToFirebase();
+        }
+
+        async function toggleCategory(municipality, category, enabled) {
+            if (!enabledInscriptions[municipality]) {
+                enabledInscriptions[municipality] = {};
+            }
+            enabledInscriptions[municipality][category] = enabled;
+            await saveEnabledToFirebase();
+        }
+
+        async function deleteTeam(id) {
+            if (!confirm('¿Eliminar esta inscripción?')) return;
+            try {
+                const teamRef = window.firebaseDoc(window.firebaseDB, 'inscripciones', id);
+                await window.firebaseDeleteDoc(teamRef);
+            } catch (e) {
+                alert('Error al eliminar: ' + e.message);
+            }
+        }
+
+        function descargarPorMunicipio() {
+            if (teams.length === 0) { alert('No hay datos para exportar'); return; }
+            
+            if (typeof XLSX === 'undefined') {
+                alert('Biblioteca XLSX cargando... intenta de nuevo');
+                return;
+            }
+            
+            try {
+                const wb = XLSX.utils.book_new();
+                const byMun = {};
+                
+                teams.forEach(t => {
+                    if (!byMun[t.municipality]) byMun[t.municipality] = [];
+                    byMun[t.municipality].push({
+                        'Nro': t.registrationNumber,
+                        'Escuela': t.schoolName,
+                        'Docente': t.teacherName,
+                        'Teléfono': t.teacherPhone,
+                        'Email': t.teacherEmail,
+                        'Deporte': t.discipline,
+                        'Categoría': t.category,
+                        'Rama': t.branch,
+                        'Fecha': t.date
+                    });
+                });
+                
+                Object.keys(byMun).sort().forEach(mun => {
+                    const data = byMun[mun];
+                    const ws = XLSX.utils.json_to_sheet(data);
+                    ws['!cols'] = [{wch:14},{wch:28},{wch:22},{wch:16},{wch:22},{wch:18},{wch:14},{wch:14},{wch:12}];
+                    XLSX.utils.book_append_sheet(wb, ws, mun.substring(0,31));
+                });
+                
+                XLSX.writeFile(wb, `JET_2026_${new Date().toISOString().split('T')[0]}.xlsx`);
+                alert('✅ Excel descargado');
+            } catch(e) { 
+                alert('❌ Error: ' + e.message); 
+            }
+        }
+
+        function clearFields() {
+            for (let i = 1; i <= 6; i++) {
+                document.getElementById('carrera' + i).checked = false;
+                document.getElementById('carrera' + i).disabled = false;
+            }
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById('campo' + i).checked = false;
+                document.getElementById('campo' + i).disabled = false;
+            }
+        }
+
+        function validateEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function resetForm() {
+            document.getElementById('schoolName').value = '';
+            document.getElementById('municipality').value = '';
+            document.getElementById('institutionEmail').value = '';
+            document.getElementById('teacherName').value = '';
+            document.getElementById('teacherPhone').value = '';
+            document.getElementById('teacherEmail').value = '';
+            document.getElementById('discipline').value = '';
+            document.getElementById('category').value = '';
+            document.getElementById('branch').value = '';
+            handleDisciplineChange();
+        }
+
+        function showMessage(msg, type) {
+            const container = document.getElementById('messageContainer');
+            container.innerHTML = `<div class="${type === 'success' ? 'success-message' : 'error-message'}">${msg}</div>`;
+            setTimeout(() => container.innerHTML = '', 5000);
+        }
+
+        function attemptAdminAccess() {
+            if (adminLoggedIn) {
+                switchMode('admin');
+            } else {
+                document.getElementById('loginOverlay').classList.add('active');
+                document.getElementById('adminPassword').focus();
+            }
+        }
+
+        function switchMode(mode) {
+            const inMode = document.getElementById('inscriptionMode');
+            const adMode = document.getElementById('adminMode');
+            const btnIn = document.getElementById('toggleInscription');
+            const btnAd = document.getElementById('toggleAdmin');
+
+            if (mode === 'inscription') {
+                inMode.classList.remove('inscription-hidden');
+                adMode.classList.add('admin-hidden');
+                btnIn.classList.add('active');
+                btnAd.classList.remove('active');
+            } else {
+                inMode.classList.add('inscription-hidden');
+                adMode.classList.remove('admin-hidden');
+                btnIn.classList.remove('active');
+                btnAd.classList.add('active');
+                updateAdminList();
+                buildMunicipalityControls();
+            }
+        }
+
+        function verifyPassword() {
+            const password = document.getElementById('adminPassword').value;
+            const errorMsg = document.getElementById('loginError');
+
+            if (password === ADMIN_PASSWORD) {
+                adminLoggedIn = true;
+                closeLoginModal();
+                switchMode('admin');
+            } else {
+                errorMsg.textContent = '❌ Contraseña incorrecta';
+                errorMsg.style.display = 'block';
+                document.getElementById('adminPassword').value = '';
+            }
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginOverlay').classList.remove('active');
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('loginError').style.display = 'none';
+        }
+
+        // Expose functions for onclick handlers
+        window.addTeam = addTeam;
+        window.deleteTeam = deleteTeam;
+        window.descargarPorMunicipio = descargarPorMunicipio;
+        window.toggleMunicipality = toggleMunicipality;
+        window.toggleCategory = toggleCategory;
+        window.switchMode = switchMode;
+        window.attemptAdminAccess = attemptAdminAccess;
+        window.verifyPassword = verifyPassword;
+        window.closeLoginModal = closeLoginModal;
+        window.handleDisciplineChange = handleDisciplineChange;
+        window.validateAtletismo = validateAtletismo;
+        window.downloadConfirmationPDFFromScreen = downloadConfirmationPDFFromScreen;
+        window.closeConfirmationScreen = closeConfirmationScreen;
+    </script>
+</body>
+</html>
